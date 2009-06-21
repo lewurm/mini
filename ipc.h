@@ -42,6 +42,7 @@ Copyright (C) 2009		John Kelley <wiidev@kelley.ca>
 #define IPC_DEV_BOOT2	0x05
 #define IPC_DEV_PPC	0x06
 #define IPC_DEV_SDMMC	0x07
+#define IPC_DEV_SHA	0x08
 
 //#define IPC_DEV_USER0 0x80
 //#define IPC_DEV_USER1 0x81
@@ -92,6 +93,9 @@ Copyright (C) 2009		John Kelley <wiidev@kelley.ca>
 #define IPC_AES_SETIV	0x0001
 #define	IPC_AES_SETKEY	0x0002
 #define	IPC_AES_DECRYPT	0x0003
+
+#define IPC_SHA_RESET	0x0000
+#define	IPC_SHA_DECRYPT	0x0001
 
 #define IPC_BOOT2_RUN	0x0000
 #define IPC_BOOT2_TMD	0x0001

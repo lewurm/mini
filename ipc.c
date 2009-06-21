@@ -168,6 +168,9 @@ static u32 process_slow(volatile ipc_request *req)
 		case IPC_DEV_AES:
 			aes_ipc(req);
 			break;
+		case IPC_DEV_SHA:
+			sha_ipc(req);
+			break;
 		case IPC_DEV_BOOT2:
 			return boot2_ipc(req);
 			break;

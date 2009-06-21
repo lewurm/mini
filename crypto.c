@@ -22,6 +22,9 @@ Copyright (C) 2008, 2009	Sven Peter <svenpeter@gmail.com>
 #define		AES_CMD_RESET	0
 #define		AES_CMD_DECRYPT	0x9800
 
+#define		SHA_CMD_RESET	0
+#define		SHA_CMD_DECRYPT	0x8000
+
 otp_t otp;
 seeprom_t seeprom;
 
@@ -44,9 +47,12 @@ void crypto_initialize(void)
 {
 	crypto_read_otp();
 	crypto_read_seeprom();
-	write32(AES_CMD, 0);
-	while (read32(AES_CMD) != 0);
+
+	aes_reset();
 	irq_enable(IRQ_AES);
+
+	sha_reset();
+	irq_enable(IRQ_SHA1);
 }
 
 void crypto_ipc(volatile ipc_request *req)
@@ -163,5 +169,77 @@ void aes_ipc(volatile ipc_request *req)
 					req->req);
 	}
 	ipc_post(req->code, req->tag, 0);
+}
+
+
+void sha_reset(void) {
+	//for some odd reason it didn't work without this check... 
+	if(read32(SHA_CMD) != 0) {
+		write32(SHA_CMD, 0);
+		while (read32(SHA_CMD) != 0);
+	}
+
+	//initial values
+	write32(SHA_H0, 0x67452301);
+	write32(SHA_H1, 0xEFCDAB89);
+	write32(SHA_H2, 0x98BADCFE);
+	write32(SHA_H3, 0x10325476);
+	write32(SHA_H4, 0xC3D2E1F0);
+}
+
+
+u32 hash[5];
+void sha_decrypt(u8 *src, u32 blocks) {
+	u8 tmp[64];
+	memcpy(tmp, src, 64);
+
+	//write src adress - what's wrong here?
+	write32(SHA_SRC, (dma_addr(tmp)<<5));
+
+	dc_flushrange(tmp, blocks * 64);
+	ahb_flush_to(AHB_SHA1);
+
+	gecko_printf("blocks: %i\n", blocks);
+	gecko_printf("src as char: %s\n", src);
+	gecko_printf("src[63]: %i\n", src[63]);
+	gecko_printf("tmp as char: %s\n", tmp);
+	gecko_printf("tmp[63]: %i\n", tmp[63]);
+	gecko_printf("%%p src: %p\n", src);
+	gecko_printf("%%p tmp: %p\n", tmp);
+	gecko_printf("%%x dmasrc: %x\n", dma_addr(src));
+	gecko_printf("%%x tmpsrc: %x\n", dma_addr(tmp));
+	gecko_printf("%%x tmpsrc<<5: %x\n", dma_addr(tmp)<<5);
+	gecko_printf("%%x tmpsrc<<6: %x\n", dma_addr(tmp)<<6);
+
+	//write cmd
+	if (blocks != 0)
+		blocks--;
+	//todo: find out value to AND with 'blocks'; for testing 'blocks' should be zero
+	write32(SHA_CMD, (SHA_CMD_DECRYPT<< 16) | (blocks&0x7f)); 	
+	while (read32(SHA_CMD) & 0x80000000);
+
+	//read result
+	hash[0] = read32(SHA_H0);
+	hash[1] = read32(SHA_H1);
+	hash[2] = read32(SHA_H2);
+	hash[3] = read32(SHA_H3);
+	hash[4] = read32(SHA_H4);
+}
+
+void sha_ipc(volatile ipc_request *req) {
+	switch(req->req) {
+		case IPC_SHA_RESET:
+			sha_reset();
+			gecko_printf("[mini] sha_reset@IPC\n");
+			ipc_post(req->code, req->tag, 0);
+			break;
+		case IPC_SHA_DECRYPT:
+			sha_decrypt((u8 *)req->args[0], req->args[1]);
+			ipc_post(req->code, req->tag, 5, hash[0], hash[1], hash[2], hash[3], hash[4]);
+			break;
+		default:
+			gecko_printf("IPC: unknown SLOW SHA request %04x\n", req->req);
+			ipc_post(req->code, req->tag, 0);
+	}
 }
 
