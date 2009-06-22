@@ -190,26 +190,22 @@ void sha_reset(void) {
 
 u32 hash[5];
 void sha_decrypt(u8 *src, u32 blocks) {
-	u8 tmp[64];
+	u8 tmp[64] ALIGNED(64);
 	memcpy(tmp, src, 64);
+	u32 dmatmp = dma_addr(tmp);
 
-	//write src adress - what's wrong here?
-	write32(SHA_SRC, (dma_addr(tmp)<<5));
+	//write src adress 
+	write32(SHA_SRC, dmatmp);
 
 	dc_flushrange(tmp, blocks * 64);
 	ahb_flush_to(AHB_SHA1);
 
-	gecko_printf("blocks: %i\n", blocks);
-	gecko_printf("src as char: %s\n", src);
-	gecko_printf("src[63]: %i\n", src[63]);
-	gecko_printf("tmp as char: %s\n", tmp);
-	gecko_printf("tmp[63]: %i\n", tmp[63]);
 	gecko_printf("%%p src: %p\n", src);
 	gecko_printf("%%p tmp: %p\n", tmp);
 	gecko_printf("%%x dmasrc: %x\n", dma_addr(src));
-	gecko_printf("%%x tmpsrc: %x\n", dma_addr(tmp));
-	gecko_printf("%%x tmpsrc<<5: %x\n", dma_addr(tmp)<<5);
-	gecko_printf("%%x tmpsrc<<6: %x\n", dma_addr(tmp)<<6);
+	gecko_printf("%%x dma_addr(tmp): %x\n", dma_addr(tmp));
+	gecko_printf("%%x dmatmp: %x\n", dmatmp);
+	
 
 	//write cmd
 	if (blocks != 0)
