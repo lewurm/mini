@@ -190,7 +190,7 @@ void sha_reset(void) {
 
 u32 hash[5];
 void sha_decrypt(u8 *src, u32 blocks) {
-	u8 tmp[64] ALIGNED(64);
+	static u8 tmp[64] ALIGNED(64);
 	memcpy(tmp, src, 64);
 	u32 dmatmp = dma_addr(tmp);
 
@@ -200,13 +200,7 @@ void sha_decrypt(u8 *src, u32 blocks) {
 	dc_flushrange(tmp, blocks * 64);
 	ahb_flush_to(AHB_SHA1);
 
-	gecko_printf("%%p src: %p\n", src);
-	gecko_printf("%%p tmp: %p\n", tmp);
-	gecko_printf("%%x dmasrc: %x\n", dma_addr(src));
-	gecko_printf("%%x dma_addr(tmp): %x\n", dma_addr(tmp));
-	gecko_printf("%%x dmatmp: %x\n", dmatmp);
 	
-
 	//write cmd
 	if (blocks != 0)
 		blocks--;
@@ -230,6 +224,7 @@ void sha_ipc(volatile ipc_request *req) {
 			ipc_post(req->code, req->tag, 0);
 			break;
 		case IPC_SHA_DECRYPT:
+			dc_invalidaterange((u8 *)req->args[0], (req->args[1]+1)*64);
 			sha_decrypt((u8 *)req->args[0], req->args[1]);
 			ipc_post(req->code, req->tag, 5, hash[0], hash[1], hash[2], hash[3], hash[4]);
 			break;

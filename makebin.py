@@ -1,6 +1,6 @@
 #!/bin/env python
 
-import sys, os, struct, sha
+import sys, os, struct, hashlib
 
 loaderfile = sys.argv[1]
 elffile = sys.argv[2]

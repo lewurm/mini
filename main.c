@@ -99,7 +99,20 @@ u32 _main(void *base)
 	}
 
 	gecko_printf("Going into IPC mainloop...\n");
+
+
+	//============================================================================
+	gecko_printf("0x0d8000c0: %X\n", read32(0x0d8000c0));
+
+	//write32(0x0d8000c0, read32(0x0d8000c0) ^ 0x20);
+	//blink ;)
+	write32(0x0d8000c0, 0x8020);
+
+	
+	gecko_printf("done!!!\n");
+
 	vector = ipc_process_slow();
+
 	gecko_printf("IPC mainloop done!\n");
 	gecko_printf("Shutting down IPC...\n");
 	ipc_shutdown();
